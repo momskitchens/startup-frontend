@@ -1,20 +1,17 @@
 import React, { useDebugValue, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../Appwrite/authOtp';
-import {login as storeLogin} from '../../store/userAuthSlice.js'
+
 const UserSignUp = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     number: '',
   });
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user,setuser] = useState("")
   const dispatched = useDispatch()
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,25 +51,14 @@ const UserSignUp = () => {
   
       const data = await response.json();
   
-      if (response.ok) {
-        const createdUser = data.data.user;
-        setuser(createdUser);
-  
-        try {
-          // await authService.createAccount(createdUser._id, createdUser.username, createdUser.number);
-          const tokenGenerate = await authService.login(createdUser._id, createdUser.number);
-          
-          if (tokenGenerate) {
-            setShowOTP(true);
-          } else {
-            setError("Failed to generate OTP");
-          }
-        } catch (err) {
-          setError(err.message || "Error during Appwrite setup");
-        }
-      } else {
+      if (!response.ok) {
         setError(data.message || 'Registration failed');
       }
+
+
+      setSuccessMessage('Account created successfully! login to continue');
+
+
     } catch (err) {
       setError('Server connection failed');
     } finally {
@@ -80,63 +66,6 @@ const UserSignUp = () => {
     }
   };
 
-  const handleOTPChange = (index, value) => {
-    if (value.length > 1) value = value.slice(0, 1);
-    if (!/^\d*$/.test(value)) return;
-
-    const newOTP = [...otp];
-    newOTP[index] = value;
-    setOtp(newOTP);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      const nextInput = document.querySelector(`input[name=otp-${index + 1}]`);
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleOTPSubmit = async (e) => {
-    e.preventDefault();
-    const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await authService.takeOtp(user._id, otpString);
-      const number = formData.number.trim().replace(/\D/g, '');
-      
-      if(response){
-        const logUser = await fetch(`${import.meta.env.VITE_BACKEND_API}/users/login`, {
-          method: 'POST',
-          credentials: "include",
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({number}),
-        });
-
-        if (logUser.ok) {
-          dispatched(storeLogin({userData : user}));
-          console.log(user)
-          navigate('/user/home');
-        } else {
-          const data = await logUser.json();
-          setError(data.message || 'Server Issue While logging');
-        }
-        
-      }else{
-        const data = await response.json();
-        setError(data.message || 'Invalid OTP');
-      }
-      
-    } catch (err) {
-      setError('Failed to verify OTP');
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-950 via-orange-900 to-orange-950 flex items-center justify-center px-4">
@@ -147,6 +76,18 @@ const UserSignUp = () => {
           <p className="text-orange-200">Join for eating ghar ka khana</p>
         </div>
 
+        {successMessage && (
+          <div className="mb-6 bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="mr-2">✅</span>
+              <span>{successMessage}</span>
+            </div>
+            <button onClick={() => setSuccessMessage('')} className="text-green-700">
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Error Display */}
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-200 px-4 py-2 rounded-lg text-sm">
@@ -154,8 +95,8 @@ const UserSignUp = () => {
           </div>
         )}
 
-        <form onSubmit={showOTP ? handleOTPSubmit : handleInitialSubmit} className="space-y-6">
-          {!showOTP ? (
+        <form onSubmit={ handleInitialSubmit} className="space-y-6">
+       
             <>
               {/* Username Input */}
               <div>
@@ -196,39 +137,7 @@ const UserSignUp = () => {
                 </div>
               </div>
             </>
-          ) : (
-            /* OTP Input Section */
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-orange-200 mb-2">
-                Enter OTP sent to +91 {formData.number}
-              </label>
-              <div className="flex gap-2 justify-center">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    name={`otp-${index}`}
-                    value={digit}
-                    onChange={(e) => handleOTPChange(index, e.target.value)}
-                    className="w-12 h-12 text-center bg-orange-950/50 border border-orange-800 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-orange-100 text-xl"
-                    maxLength={1}
-                    required
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setOtp(['', '', '', '', '', '']);
-                  setShowOTP(false);
-                }}
-                className="text-orange-400 hover:text-orange-300 text-sm block mx-auto"
-              >
-                Edit Information
-              </button>
-            </div>
-          )}
-
+         
           {/* Submit Button */}
           <button
             type="submit"
@@ -244,7 +153,7 @@ const UserSignUp = () => {
                 Processing...
               </span>
             ) : (
-              showOTP ? 'Verify OTP' : 'Sign Up'
+            'Sign Up'
             )}
           </button>
 

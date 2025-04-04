@@ -19,6 +19,9 @@ import MomHome from './pages/MOMs/MomHome.jsx'
 import MomMenus from './pages/MOMs/MomMenus.jsx'
 import MomOrders from './pages/MOMs/MomOrders.jsx'
 import MomPayments from './pages/MOMs/MomPayments.jsx'
+import MomProfile from './pages/MOMs/MomProfile.jsx'
+import Protected from './components/Protection.jsx'
+import MomProtected from './components/MomProtection.jsx'
 
 const router = createBrowserRouter([
   {
@@ -28,59 +31,107 @@ const router = createBrowserRouter([
     children:[
       {
         path:"/",
-        element:<Dashboard />
+        element: <Dashboard/>
       },
+      // user routes
       {
         path:'/user/home',
-        element:<Home />
+        element:
+        <Protected authentication={true}  >
+         <Home/>
+       </Protected>
       },
       {
         path:'/moms',
-        element:<MomsPage />
+        element:
+        <Protected authentication={true} >
+         <MomsPage/>
+       </Protected>
       },
       {
         path:"/login",
-        element:<UserLogin />
+        element:
+        <Protected authentication={false} >
+         <UserLogin/>
+       </Protected>
       },
       {
         path:"/signup",
-        element:<UserSignUp/>
+        element:
+        <Protected authentication={false} >
+          <UserSignUp/>
+        </Protected>
       },
       {
         path:"/orders",
-        element:<OrdersPage/>
+        element:
+        <Protected authentication={true} >
+          <OrdersPage/>
+        </Protected>
       },
       {
         path : "/menu",
-        element: <MenuPage />
+        element: 
+        <Protected authentication={true} >
+          <MenuPage/>
+        </Protected>
       },
       {
         path : "/user/profile",
-        element: <Profile />
+        element: 
+        <Protected authentication={true} >
+          <Profile/>
+        </Protected>
       },
+      // mom routes
       {
         path: "/mom/login",
-        element: <MomLogin />
+        element: 
+        <MomProtected authentication={false} >
+          <MomLogin/>
+        </MomProtected>
       },
       {
         path: "/mom/signup",
-        element: <MomSignUp />
+        element: 
+        <MomProtected authentication={false} >
+         <MomSignUp/>
+       </MomProtected>
       },
       {
         path: "/mom/home",
-        element: <MomHome />
+        element:
+        <MomProtected authentication={true} >
+          <MomHome/>
+       </MomProtected>
       },
       {
         path:"/mom/menus",
-        element: <MomMenus />
+        element: 
+        <MomProtected authentication={true} >
+          <MomMenus/>
+        </MomProtected>
       },
       {
         path:"/mom/orders",
-        element:<MomOrders />
+        element:
+        <MomProtected authentication={true} >
+          <MomOrders/>
+        </MomProtected>
       },
       {
         path:"/mom/payments",
-        element:<MomPayments />
+        element:
+        <MomProtected authentication={true} >
+          <MomPayments/>
+        </MomProtected>
+      },
+      {
+        path:"/mom/profile",
+        element:
+        <MomProtected authentication={true} >
+          <MomProfile/>
+        </MomProtected>
       },
     ]
   }

@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet, useLocation, Navigate } from 'react-router-dom'
+import { Outlet, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import { login, logout } from "./store/userAuthSlice.js"
 import { login as  loginMom, logout as logoutMom } from "./store/momAuthSlice.js" // New imports for mom auth
 import { useDispatch, useSelector } from 'react-redux'
-import authService from './Appwrite/authOtp.js'
 import { useCookies } from 'react-cookie'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
@@ -14,9 +13,10 @@ function App() {
   const location = useLocation();
   const [cookies, setCookie, removeCookie] = useCookies(['AccessToken', 'RefreshToken', 'MomAccessToken', 'MomRefreshToken']);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Determine if we're in the mom view based on the URL path
-  const isMomView = location.pathname.startsWith('/mom');
+  const isMomView = location.pathname.startsWith('/mom/login');
 
   const refreshAccessTokens = useCallback(async (isMom = false) => {
     try {
@@ -47,7 +47,6 @@ function App() {
   const handleUserLogout = async () => {
     try {
       dispatch(logout());
-      await authService.logout();
       removeCookie('AccessToken', { path: '/' });
       removeCookie('RefreshToken', { path: '/' });
     } catch (error) {
@@ -57,7 +56,6 @@ function App() {
   const handleMomLogout = async () => {
     try {
       dispatch(logoutMom());
-      await authService.logout();
       removeCookie('AccessToken', { path: '/' });
       removeCookie('RefreshToken', { path: '/' });
     } catch (error) {
@@ -93,6 +91,7 @@ function App() {
       const data = await userData.json();
       if (data) {
         dispatch(login(data));
+        navigate('/user/home')
       } else {
         await handleUserLogout();
       }
@@ -133,7 +132,8 @@ function App() {
 
       const data = await momData.json();
       if (data) {
-        dispatch(loginMom(data));
+        dispatch(loginMom({momData : data}));
+        navigate('/mom/home')
       } else {
         await handleMomLogout();
       }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import authService from '../../Appwrite/authOtp';
 import { login as storeLogin } from '../../store/userAuthSlice.js';
 
 const PhoneLogin = () => {
@@ -12,7 +11,7 @@ const PhoneLogin = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleNumberSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +23,9 @@ const PhoneLogin = () => {
 
     setLoading(true);
     try {
+
       const number = formData.number.trim().replace(/\D/g, '');
+
       const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/users/login`, {
         method: 'POST',
         credentials: 'include',
@@ -35,18 +36,14 @@ const PhoneLogin = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setUser(data.data.user);
-        const tokenGenerate = await authService.login(data.data.user._id, data.data.user.number);
-        if (tokenGenerate) {
-          setShowOTP(true);
-        } else {
-          setError('Failed to generate OTP');
-        }
+         setSuccessMessage( data.message || 'Otp sent successfully');
+        setShowOTP(true);
+        
       } else {
         setError(data.message || 'Login failed');
       }
     } catch (err) {
-      setError('Server connection failed');
+      setError( 'Server connection failed');
     } finally {
       setLoading(false);
     }
@@ -76,23 +73,22 @@ const PhoneLogin = () => {
 
     setLoading(true);
     try {
-      const response = await authService.takeOtp(user._id, otpString);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/users/verify-otp`,{
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: formData.number, code: otpString })
+      })
+
+      const data = await response.json();
       
-      if (response) {
-        dispatch(storeLogin({ userData: user }));
+      if (response.ok) {
+        setSuccessMessage(data.message || 'Login successful');
+        dispatch(storeLogin({ userData: data.data.user }));
         navigate('/user/home');
   
-      } else {
-        const errorLogin = await fetch(`${import.meta.env.VITE_BACKEND_API}/users/logout`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        setError('Invalid OTP');
-
-        if(!errorLogin.ok){
-          setError("Server Issue on logout handling wrong otp")
-        }
+      } else {   
+        setError(data.message || 'Invalid OTP');
       }
     } catch (err) {
       setError('Failed to verify OTP');
@@ -107,6 +103,18 @@ const PhoneLogin = () => {
           <h2 className="text-4xl font-bold text-orange-100 mb-2">Welcome Back</h2>
           <p className="text-orange-200">Login to your account</p>
         </div>
+
+        {successMessage && (
+          <div className="mb-6 bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="mr-2">✅</span>
+              <span>{successMessage}</span>
+            </div>
+            <button onClick={() => setSuccessMessage('')} className="text-green-700">
+              ×
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-200 px-4 py-2 rounded-lg text-sm">

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import authService from '../../Appwrite/authOtp';
 import { login as storeLogin } from '../../store/momAuthSlice.js';
 
 const MomLogin = () => {
@@ -12,7 +11,7 @@ const MomLogin = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleNumberSubmit = async (e) => {
     e.preventDefault();
@@ -33,19 +32,17 @@ const MomLogin = () => {
       });
 
       const data = await response.json();
+      console.log(data)
 
       if (response.ok) {
-        setUser(data.data.user);
-        const tokenGenerate = await authService.login(data.data.user._id, data.data.user.number);
-        if (tokenGenerate) {
+         setSuccessMessage( data.message || 'Otp sent successfully');
           setShowOTP(true);
-        } else {
-          setError('Failed to generate OTP');
-        }
+        
       } else {
         setError(data.message || 'Login failed');
       }
     } catch (err) {
+      console.error(err);
       setError('Server connection failed');
     } finally {
       setLoading(false);
@@ -76,18 +73,22 @@ const MomLogin = () => {
 
     setLoading(true);
     try {
-      const response = await authService.takeOtp(user._id, otpString);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/moms/verify-otp`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: formData.number, code: otpString }),
+      })
+
+      const data = await response.json();
+      console.log(data.data.mom)
       
       if (response) {
-        dispatch(storeLogin({ userData: user }));
+        dispatch(storeLogin({ userData: data.data.mom }));
         navigate('/mom/home');
   
       } else {
-        const errorLogin = await fetch(`${import.meta.env.VITE_BACKEND_API}/moms/logout`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        });
+        
         setError('Invalid OTP');
 
         if(!errorLogin.ok){
